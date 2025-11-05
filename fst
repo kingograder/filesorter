@@ -1,177 +1,155 @@
 #!/usr/bin/env bash
 
-# set -e: немедленно выйти, если команда завершается с ошибкой.
-# set -u: выйти при использовании необъявленной переменной.
-# set -o pipefail: вернуть ненулевой статус, если любая команда в конвейере (pipe)
-#                  завершается с ошибкой.
+# Строгий режим для безопасности и предсказуемости
+# set -e: выход при ошибке
+# set -u: выход при использовании необъявленной переменной
+# set -o pipefail: выход, если команда в конвейере завершается с ошибкой
 set -euo pipefail
 
+# ===================================================================
+# Секция: Конфигурация
+# Это единственный блок, который нужно редактировать для настройки.
+# ===================================================================
 
-# СЕКЦИЯ: Конфигурация
-# ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ. Редактируйте этот блок для настройки.
-# Логика скрипта автоматически адаптируется под эти данные.
+# Базовая директория для отсортированных файлов.
+# Чтобы убрать лишний уровень вложенности, можно установить: readonly DIR_BASE="."
+readonly DIR_BASE="./Sorted"
 
-# Основные названия директорий (используются как ключи в массиве ниже)
-
-readonly DIR_BASE="Sorted"  # Базовая директория (поставьте значение "./" чтобы
-                            # не создавать дополнительную вложенность)
-
-readonly DIR_IMAGES="$DIR_BASE/Images" # Директория для изображений
-
-readonly DIR_IMAGES_RASTER="$DIR_IMAGES/Raster" # Тут уже сами разберетесь
+# Определения путей для категорий
+readonly DIR_IMAGES="$DIR_BASE/Images"
+readonly DIR_IMAGES_RASTER="$DIR_IMAGES/Raster"
 readonly DIR_IMAGES_VECTOR="$DIR_IMAGES/Vector"
-readonly DIR_IMAGES_PROJECTS="$DIR_IMAGES/Projects" # Тут все проекты типо ".kra и .psd"
+readonly DIR_IMAGES_PROJECTS="$DIR_IMAGES/Projects"
 readonly DIR_ICONS="$DIR_IMAGES/Icons"
 readonly DIR_TEXTURES="$DIR_IMAGES/Textures"
 readonly DIR_IMAGES_RAW="$DIR_IMAGES/RAW"
-
-readonly DIR_VIDEOS="$DIR_BASE/Videos"  # Директория для видео
-readonly DIR_VIDEO_PROJECTS="$DIR_VIDEOS/Projects"  # Видеопроекты
-
-readonly DIR_MUSIC="$DIR_BASE/Music"    # Директория для музыки
-readonly DIR_AUDIO_PROJECTS="$DIR_MUSIC/Projects"   # Музыкальные проекты например .flp
-
-readonly DIR_DOCUMENTS="$DIR_BASE/Documents"    # Базовая директория для документов
+readonly DIR_VIDEOS="$DIR_BASE/Videos"
+readonly DIR_VIDEO_PROJECTS="$DIR_VIDEOS/Projects"
+readonly DIR_MUSIC="$DIR_BASE/Music"
+readonly DIR_AUDIO_PROJECTS="$DIR_MUSIC/Projects"
+readonly DIR_DOCUMENTS="$DIR_BASE/Documents"
 readonly DIR_DOCUMENTS_TEXT="$DIR_DOCUMENTS/Texts"
 readonly DIR_DOCUMENTS_TABLES="$DIR_DOCUMENTS/Tables"
 readonly DIR_PRESENTATIONS="$DIR_DOCUMENTS/Presentations"
 readonly DIR_EBOOKS="$DIR_DOCUMENTS/Ebooks"
-
 readonly DIR_EXECUTABLES="$DIR_BASE/Executables"
 readonly DIR_PACKAGES="$DIR_BASE/Packages"
 readonly DIR_TORRENTS="$DIR_BASE/Torrents"
-
 readonly DIR_CODE="$DIR_BASE/Code"
 readonly DIR_PYTHON="$DIR_CODE/Python"
 readonly DIR_WEB="$DIR_CODE/Web"
 readonly DIR_PROJECT_FILES="$DIR_BASE/Projects"
-
 readonly DIR_3D="$DIR_BASE/3D"
 readonly DIR_3D_PROJECTS="$DIR_3D/Projects"
 readonly DIR_3D_EXCHANGE="$DIR_3D/Exchange"
 readonly DIR_CAD="$DIR_BASE/CAD"
-
 readonly DIR_ARCHIVES="$DIR_BASE/Archives"
 readonly DIR_FONTS="$DIR_BASE/Fonts"
 readonly DIR_VIRTUAL="$DIR_BASE/VirtualMachines"
-readonly DIR_OTHER="$DIR_BASE/Other"
+readonly DIR_OTHER="$DIR_BASE/Other" # Директория для всего остального
 
 # Карта "Путь категории -> Расширения"
+# ВАЖНО: Категория DIR_OTHER здесь не указывается, она работает как "умолчание".
 declare -rA CATEGORY_TO_EXTENSIONS=(
-  # Растровые изображения
   ["$DIR_IMAGES_RASTER"]="jpg jpeg jfif jpe jpeg2000 jp2 png gif bmp tiff tif heic heif webp hdr exr dib ppm pgm pbm"
-  # Векторные
   ["$DIR_IMAGES_VECTOR"]="svg eps ai cdr emf wmf"
-  # Графические проекты
   ["$DIR_IMAGES_PROJECTS"]="psd psb xcf kra afdesign afphoto sketch cpt cap procreate cptx"
-  # Иконки
   ["$DIR_ICONS"]="ico icns icon icl"
-  # Текстуры и материалы
   ["$DIR_TEXTURES"]="tga tx dds sbsar"
-  # RAW форматы фотоаппаратов
   ["$DIR_IMAGES_RAW"]="cr2 cr3 nef nrw orf arw pef raf rw2 dng mrw kdc srw"
-
-  # Видео
   ["$DIR_VIDEOS"]="mp4 mkv avi mov webm flv mpg mpeg m4v wmv vob ogv"
-  # Проекты видео
   ["$DIR_VIDEO_PROJECTS"]="prproj aep vegsml veg vstp drp mlv mlt pfls fcpxml fcpx project davinci"
-
-  # Музыка / аудио
   ["$DIR_MUSIC"]="mp3 wav flac aac m4a ogg wma opus aiff aif mid midi"
-  # Проекты аудио / DAW
   ["$DIR_AUDIO_PROJECTS"]="als flp ptf ptf64 logicpro aup xrns prj"
-
-  # Документы текстовые
   ["$DIR_DOCUMENTS_TEXT"]="txt md doc docx rtf tex html htm xml"
-  # Таблицы / базы
   ["$DIR_DOCUMENTS_TABLES"]="xls xlsx xlsm csv ods db sqlite sql mdb accdb"
-  # Презентации
   ["$DIR_PRESENTATIONS"]="ppt pptx odp key"
-  # Электронные книги
   ["$DIR_EBOOKS"]="epub mobi azw3"
-
-  # Исполняемые
   ["$DIR_EXECUTABLES"]="exe bin sh run runme app AppImage jar dll so bat cmd com"
-  # Пакеты
   ["$DIR_PACKAGES"]="deb rpm apk msi pkg dmg snap flatpak appimage"
-  # Торренты
   ["$DIR_TORRENTS"]="torrent magnet"
-
-  # Кодовые файлы
   ["$DIR_CODE"]="c cpp h hpp java class cs go rs swift kotlin rb php pl js jsx ts tsx json yaml yml toml"
   ["$DIR_PYTHON"]="py pyc pyo pyd ipynb"
   ["$DIR_WEB"]="html htm css js jsx tsx mjs map manifest webmanifest"
   ["$DIR_PROJECT_FILES"]="sln vcsproj vbproj gradle pom.xml package.json Makefile CMakeLists.txt workspace code-workspace"
-
-  # 3D
   ["$DIR_3D_PROJECTS"]="blend max c4d mb ma 3ds bdoc zprj scene xrscene mtlx"
   ["$DIR_3D_EXCHANGE"]="obj fbx dae stl ply glb gltf 3mf off wrl x3d"
-  # CAD
   ["$DIR_CAD"]="sldprt sldasm slddrw prt asm step stp iges igs dwg dxf catpart catproduct catdrawing 3dm"
-
-  # Архивы
   ["$DIR_ARCHIVES"]="zip rar 7z tar gz tgz bz2 tbz xz txz lz4 lzma cab iso img vhd vhdx"
-  # Шрифты
   ["$DIR_FONTS"]="ttf otf woff woff2 pfb afm"
-  # Виртуальные машины
   ["$DIR_VIRTUAL"]="vmdk vdi qcow2 ova ovf img qcow qcow2"
-  # Прочие
-  ["$DIR_OTHER"]="log cfg ini conf bak tmp partial ds_store zotero rdf rdfxml zotero.sqlite thumbs.db"
 )
 
-# СЕКЦИЯ: Глобальные переменные
+# ===================================================================
+# Секция: Глобальные переменные
+# ===================================================================
 
-# Аргументы
-is_recursive=0 # Рекурсивный поиск файлов по вложенным директориям
-is_date_sort=0 # Сортировка по дате
-is_copy_mode=0 # Режим копирования
-is_quiet=0 # Тихий режим
-skip_prompt=0 # Пропускать y/n
-output_dir="" # Выходная директория (-o)
-
+# Флаги состояния, управляемые аргументами
+is_recursive=0
+is_date_sort=0
+is_copy_mode=0
+is_quiet=0
+skip_prompt=0
+output_dir=""
 exclusions=()
 
-# Счетчики
+# Счетчики для итоговой статистики
 files_processed=0
 dirs_created=0
 errors_count=0
 
-# Прочее
+# Строки для логов, меняются при выборе режима копирования
 action_name="Перемещение"
 action_past_tense="Перемещено"
+
+# Путь к самому скрипту, чтобы он не отсортировал сам себя
 script_path=""
 
-# СЕКЦИЯ: Функции
+# ===================================================================
+# Секция: Функции
+# ===================================================================
 
+# Функция: show_help
+# Показывает справку по использованию скрипта.
+# Функция: show_help
+# Показывает справку по использованию скрипта.
 show_help() {
   cat << EOF
+
 Универсальный скрипт для сортировки файлов.
+
+Скрипт сортирует файлы в $DIR_BASE.
 
 Использование: $(basename "$0") [flags]
 
-По умолчанию сортирует файлы из текущей директории в её же подпапки.
-
 Флаги:
 -o, --output DIR  Сортировать файлы в указанную директорию DIR.
--r, --recursive   Включить рекурсивный поиск файлов в поддиректориях.
--d, --date        Сортировать файлы по дате, создавая подпапки ГГГГ/ММ.
+-r, --recursive   Включить рекурсивный поиск файлов в поддиреториях.
+-d, --date        Сортировать файлы по дате.
 -c, --copy        Копировать файлы вместо перемещения.
--a, --avoid PAT   Исключить файлы или директории по шаблону (например, -a "*.tmp"). Можно использовать несколько раз.
--q, --quiet       Тихий режим (скрыть логи обработки каждого файла).
--y, --yes         Пропустить запрос на подтверждение и немедленно начать выполнение.
+-a, --avoid PAT   Исключить файлы или директории (например, -a "*.tmp").
+-q, --quiet       Тихий режим.
+-y, --yes         Согласиться с выполнением.
 -h, --help        Показать это справочное сообщение.
+
 EOF
   exit 0
 }
 
+# Функция: log_info
+# Выводит информационное сообщение (если не включен тихий режим).
 log_info() {
     if [[ "$is_quiet" -eq 0 ]]; then echo "$@"; fi
 }
 
+# Функция: log_error
+# Выводит сообщение об ошибке в стандартный поток ошибок (stderr).
 log_error() {
     echo "ОШИБКА: $@" >&2
 }
 
+# Функция: generate_ext_to_category_map
+# Создает "обратную" карту "расширение -> категория" для быстрого поиска.
 generate_ext_to_category_map() {
     declare -gA ext_to_category_map
     for category in "${!CATEGORY_TO_EXTENSIONS[@]}"; do
@@ -182,27 +160,27 @@ generate_ext_to_category_map() {
     done
 }
 
-# -----------------------------------------------------------------------------------
-# Функция: setup_target_directories (НОВАЯ ВЕРСИЯ)
-# Назначение: Динамически инициализирует пути к целевым директориям,
-#             основываясь исключительно на массиве CATEGORY_TO_EXTENSIONS.
-# Аргументы:
-#   $1 - Базовая директория для сортировки.
-# -----------------------------------------------------------------------------------
+# Функция: setup_target_directories
+# Динамически создает полные пути ко всем целевым директориям.
 setup_target_directories() {
     local base_dest_dir="$1"
-    declare -gA category_dirs # -g делает массив глобальным
+    declare -gA category_dirs
 
-    # Динамически перебираем все категории, определенные в конфигурации
+    # Создаем пути для всех категорий, указанных в конфигурации
     for category_path in "${!CATEGORY_TO_EXTENSIONS[@]}"; do
-        # Просто соединяем базовый путь и путь категории
         category_dirs["$category_path"]="$base_dest_dir/$category_path"
     done
+
+    # Отдельно добавляем путь для 'Other', так как его нет в основном списке
+    category_dirs["$DIR_OTHER"]="$base_dest_dir/$DIR_OTHER"
 }
 
+# Функция: process_file
+# Основная логика обработки одного файла.
 process_file() {
     local file_path="$1"
 
+    # Пропускаем символические ссылки
     if [[ -L "$file_path" ]]; then
         log_info "Пропущен симлинк: $file_path"
         return
@@ -212,44 +190,48 @@ process_file() {
     local extension; extension="${filename##*.}"
     local category
 
+    # Определяем категорию файла
     if [[ "$extension" == "$filename" ]]; then
+        # Файл без расширения -> Other
         category="$DIR_OTHER"
     else
-        extension="${extension,,}"
+        extension="${extension,,}" # Приводим расширение к нижнему регистру
+        # Ищем категорию в карте. Если не найдено, используем $DIR_OTHER по умолчанию.
         category="${ext_to_category_map[$extension]:-$DIR_OTHER}"
     fi
 
-    # Получаем полный путь назначения из динамически созданного массива
+    # Формируем конечный путь
     local dest_dir="${category_dirs[$category]}"
     if [[ "$is_date_sort" -eq 1 ]]; then
         local date_subdir; date_subdir=$(date -r "$file_path" "+%Y/%m")
         dest_dir="$dest_dir/$date_subdir"
     fi
 
+    # Создаем директорию, если она не существует
     if [[ ! -d "$dest_dir" ]]; then
         if mkdir -p "$dest_dir"; then
             ((++dirs_created))
             log_info "Создана директория: $dest_dir"
         else
             log_error "Не удалось создать директорию: $dest_dir"
-            ((++errors_count))
-            return
+            ((++errors_count)); return
         fi
     fi
 
+    # Проверяем на конфликт имен и генерируем новое, если нужно
     local dest_path="$dest_dir/$filename"
     if [[ -e "$dest_path" ]]; then
         local base_name="${filename%.*}"
-        local ext_part=""
-        if [[ "$filename" == *.* ]]; then ext_part=".${filename##*.}"; fi
+        local ext_part=""; if [[ "$filename" == *.* ]]; then ext_part=".${filename##*.}"; fi
         local counter=1
         while [[ -e "${dest_dir}/${base_name}_${counter}${ext_part}" ]]; do
             ((++counter))
         done
         dest_path="${dest_dir}/${base_name}_${counter}${ext_part}"
-        log_info "Файл '$filename' уже существует, новое имя: '$(basename "$dest_path")'"
+        log_info "Файл '$filename' существует, новое имя: '$(basename "$dest_path")'"
     fi
 
+    # Выполняем действие: перемещение или копирование
     local cmd_to_run=mv
     if [[ "$is_copy_mode" -eq 1 ]]; then cmd_to_run=cp; fi
 
@@ -262,16 +244,18 @@ process_file() {
     fi
 }
 
+# ===================================================================
+# Секция: Основная логика выполнения
+# ===================================================================
 
-# СЕКЦИЯ: Основная логика
-
+# Шаг 1: Первоначальные проверки
 if [[ "$(pwd)" == "/" ]]; then
-    log_error "Запуск из корневой директории (/) запрещен в целях безопасности."
+    log_error "Запуск из корневой директории (/) запрещен."
     exit 1
 fi
 script_path=$(realpath "$0")
 
-# --- Парсинг аргументов (флаг -g удален) ---
+# Шаг 2: Парсинг аргументов командной строки
 while getopts ":o:rdca:qyh" opt; do
     case $opt in
         o) output_dir="$OPTARG" ;;
@@ -287,24 +271,24 @@ while getopts ":o:rdca:qyh" opt; do
     esac
 done
 
+# Шаг 3: Инициализация
 generate_ext_to_category_map
 
 base_dest_dir="."
-dest_type_description="Локальная сортировка в '$(pwd)'"
+dest_type_description="Cортировка в '$(pwd)'"
 if [[ -n "$output_dir" ]]; then
     base_dest_dir="$output_dir"
     dest_type_description="Сортировка в указанную директорию '$output_dir'"
 fi
 
-# Назначение целевых директорий
-
 setup_target_directories "$base_dest_dir"
 
+# Шаг 4: Поиск файлов
 log_info "Анализ файлов для сортировки..."
 find_args=(".")
 if [[ "$is_recursive" -eq 0 ]]; then find_args+=("-maxdepth" "1"); fi
 find_args+=("-type" "f")
-find_args+=("-not" "-path" "./$(basename "$script_path")")
+find_args+=("-not" "-path" "./$(basename "$script_path")") # Исключаем сам скрипт
 for pattern in "${exclusions[@]}"; do find_args+=("-not" "-path" "./$pattern"); done
 
 mapfile -t -d '' files_to_process < <(find "${find_args[@]}" -print0)
@@ -315,21 +299,19 @@ if [[ "$file_count" -eq 0 ]]; then
     exit 0
 fi
 
+# Шаг 5: Сводка и подтверждение (если не пропущено)
 if [[ "$skip_prompt" -eq 0 ]]; then
     cat << EOF
---------------------------------------
-        Сводка операции
---------------------------------------
-Действие:         $action_name
-Источник:         $(pwd)
-Назначение:       $dest_type_description
-Поиск:            $([[ "$is_recursive" -eq 1 ]] && echo "Рекурсивный" || echo "Только в текущей директории")
-Сортировка по дате: $([[ "$is_date_sort" -eq 1 ]] && echo "Включена (ГГГГ/ММ)" || echo "Выключена")
 
-Найдено для обработки: $file_count файлов.
---------------------------------------
+Действие:               $action_name
+Источник:               $(pwd)
+Назначение:             $dest_type_description
+Рекурсивный поиск:      $([[ "$is_recursive" -eq 1 ]] && echo "Да" || echo "Нет")
+Сортировка по дате:     $([[ "$is_date_sort" -eq 1 ]] && echo "Да" || echo "Нет")
+
+Найдено для обработки:  $file_count файлов.
 EOF
-    read -p "Начать? (y/n) " -r reply
+    read -p "Начать? (y/[N]) " -r reply
     echo
     case "$reply" in
         [YyДд]) log_info "Начинаем..." ;;
@@ -337,17 +319,20 @@ EOF
     esac
 fi
 
+# Шаг 6: Основной цикл обработки файлов
 for file_path in "${files_to_process[@]}"; do
     if [[ -f "$file_path" ]]; then
         process_file "${file_path#./}"
     fi
 done
 
+# Шаг 7: Финальный отчет
 cat << EOF
---------------------------------------
+
 Операция завершена.
+
 Обработано файлов:         $files_processed
-Создано новых директорий: $dirs_created
+Создано новых директорий:  $dirs_created
 Ошибок:                    $errors_count
---------------------------------------
+
 EOF
