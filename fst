@@ -6,29 +6,32 @@
 #                  завершается с ошибкой.
 set -euo pipefail
 
-# ===================================================================================
-#                               СЕКЦИЯ: Конфигурация
-# ===================================================================================
+
+# СЕКЦИЯ: Конфигурация
 # ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ. Редактируйте этот блок для настройки.
 # Логика скрипта автоматически адаптируется под эти данные.
 
-# --- Основные названия директорий (используются как ключи в массиве ниже) ---
-readonly DIR_BASE="Sorted"
-readonly DIR_IMAGES="$DIR_BASE/Images"
-readonly DIR_IMAGES_RASTER="$DIR_IMAGES/Raster"
+# Основные названия директорий (используются как ключи в массиве ниже)
+
+readonly DIR_BASE="Sorted"  # Базовая директория (поставьте значение "./" чтобы
+                            # не создавать дополнительную вложенность)
+
+readonly DIR_IMAGES="$DIR_BASE/Images" # Директория для изображений
+
+readonly DIR_IMAGES_RASTER="$DIR_IMAGES/Raster" # Тут уже сами разберетесь
 readonly DIR_IMAGES_VECTOR="$DIR_IMAGES/Vector"
-readonly DIR_IMAGES_PROJECTS="$DIR_IMAGES/Projects"
+readonly DIR_IMAGES_PROJECTS="$DIR_IMAGES/Projects" # Тут все проекты типо ".kra и .psd"
 readonly DIR_ICONS="$DIR_IMAGES/Icons"
 readonly DIR_TEXTURES="$DIR_IMAGES/Textures"
 readonly DIR_IMAGES_RAW="$DIR_IMAGES/RAW"
 
-readonly DIR_VIDEOS="$DIR_BASE/Videos"
-readonly DIR_VIDEO_PROJECTS="$DIR_VIDEOS/Projects"
+readonly DIR_VIDEOS="$DIR_BASE/Videos"  # Директория для видео
+readonly DIR_VIDEO_PROJECTS="$DIR_VIDEOS/Projects"  # Видеопроекты
 
-readonly DIR_MUSIC="$DIR_BASE/Music"
-readonly DIR_AUDIO_PROJECTS="$DIR_MUSIC/Projects"
+readonly DIR_MUSIC="$DIR_BASE/Music"    # Директория для музыки
+readonly DIR_AUDIO_PROJECTS="$DIR_MUSIC/Projects"   # Музыкальные проекты например .flp
 
-readonly DIR_DOCUMENTS="$DIR_BASE/Documents"
+readonly DIR_DOCUMENTS="$DIR_BASE/Documents"    # Базовая директория для документов
 readonly DIR_DOCUMENTS_TEXT="$DIR_DOCUMENTS/Texts"
 readonly DIR_DOCUMENTS_TABLES="$DIR_DOCUMENTS/Tables"
 readonly DIR_PRESENTATIONS="$DIR_DOCUMENTS/Presentations"
@@ -53,7 +56,7 @@ readonly DIR_FONTS="$DIR_BASE/Fonts"
 readonly DIR_VIRTUAL="$DIR_BASE/VirtualMachines"
 readonly DIR_OTHER="$DIR_BASE/Other"
 
-# --- Карта "Путь категории -> Расширения" ---
+# Карта "Путь категории -> Расширения"
 declare -rA CATEGORY_TO_EXTENSIONS=(
   # Растровые изображения
   ["$DIR_IMAGES_RASTER"]="jpg jpeg jfif jpe jpeg2000 jp2 png gif bmp tiff tif heic heif webp hdr exr dib ppm pgm pbm"
@@ -116,26 +119,30 @@ declare -rA CATEGORY_TO_EXTENSIONS=(
   ["$DIR_OTHER"]="log cfg ini conf bak tmp partial ds_store zotero rdf rdfxml zotero.sqlite thumbs.db"
 )
 
-# ===================================================================================
-#                             СЕКЦИЯ: Глобальные переменные
-# ===================================================================================
-is_recursive=0
-is_date_sort=0
-is_copy_mode=0
-is_quiet=0
-skip_prompt=0
-output_dir=""
+# СЕКЦИЯ: Глобальные переменные
+
+# Аргументы
+is_recursive=0 # Рекурсивный поиск файлов по вложенным директориям
+is_date_sort=0 # Сортировка по дате
+is_copy_mode=0 # Режим копирования
+is_quiet=0 # Тихий режим
+skip_prompt=0 # Пропускать y/n
+output_dir="" # Выходная директория (-o)
+
 exclusions=()
+
+# Счетчики
 files_processed=0
 dirs_created=0
 errors_count=0
+
+# Прочее
 action_name="Перемещение"
 action_past_tense="Перемещено"
 script_path=""
 
-# ===================================================================================
-#                                 СЕКЦИЯ: Функции
-# ===================================================================================
+# СЕКЦИЯ: Функции
+
 show_help() {
   cat << EOF
 Универсальный скрипт для сортировки файлов.
@@ -255,9 +262,9 @@ process_file() {
     fi
 }
 
-# ===================================================================================
-#                               СЕКЦИЯ: Основная логика
-# ===================================================================================
+
+# СЕКЦИЯ: Основная логика
+
 if [[ "$(pwd)" == "/" ]]; then
     log_error "Запуск из корневой директории (/) запрещен в целях безопасности."
     exit 1
@@ -289,8 +296,8 @@ if [[ -n "$output_dir" ]]; then
     dest_type_description="Сортировка в указанную директорию '$output_dir'"
 fi
 
-# --- ИСПРАВЛЕННЫЙ ВЫЗОВ ФУНКЦИИ ---
-# Правильный синтаксис для вызова функции с аргументом
+# Назначение целевых директорий
+
 setup_target_directories "$base_dest_dir"
 
 log_info "Анализ файлов для сортировки..."
