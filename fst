@@ -7,7 +7,6 @@ set -euo pipefail
 # Section: Configuration (Relative paths)
 # ===================================================================
 
-readonly DIR_IMAGES="Images"
 readonly DIR_IMAGES_RASTER="Images/Raster"
 readonly DIR_IMAGES_VECTOR="Images/Vector"
 readonly DIR_IMAGES_PROJECTS="Images/Projects"
@@ -18,7 +17,6 @@ readonly DIR_VIDEOS="Videos"
 readonly DIR_VIDEO_PROJECTS="Videos/Projects"
 readonly DIR_MUSIC="Music"
 readonly DIR_AUDIO_PROJECTS="Music/Projects"
-readonly DIR_DOCUMENTS="Documents"
 readonly DIR_DOCUMENTS_TEXT="Documents/Texts"
 readonly DIR_DOCUMENTS_TABLES="Documents/Tables"
 readonly DIR_PRESENTATIONS="Documents/Presentations"
@@ -30,7 +28,6 @@ readonly DIR_CODE="Code"
 readonly DIR_PYTHON="Code/Python"
 readonly DIR_WEB="Code/Web"
 readonly DIR_PROJECT_FILES="Projects"
-readonly DIR_3D="3D"
 readonly DIR_3D_PROJECTS="3D/Projects"
 readonly DIR_3D_EXCHANGE="3D/Exchange"
 readonly DIR_CAD="CAD"
@@ -78,6 +75,7 @@ is_date_sort=0
 is_copy_mode=0
 is_quiet=0
 skip_prompt=0
+is_user_dir=0
 input_dir=""
 output_dir=""
 exclusions=()
@@ -105,6 +103,7 @@ Usage: $(basename "$0") [flags]
 Flags:
 -i DIR   Specify the input directory to sort files from.
 -o DIR   Sort files into the specified directory DIR.
+-u       Sort files into the user's home directory (~/Sorted), overrides -o.
 -r       Enable recursive file search in subdirectories.
 -d       Sort files by date.
 -c       Copy files instead of moving them.
@@ -122,7 +121,7 @@ log_info() {
 }
 
 log_error() {
-    echo "ERROR: $@" >&2
+    echo "ERROR: $*" >&2
 }
 
 generate_ext_to_category_map() {
@@ -197,8 +196,8 @@ process_file() {
         log_info "File '$filename' exists, new name: '$(basename "$dest_path")'"
     fi
 
-    local cmd_to_run=mv
-    if [[ "$is_copy_mode" -eq 1 ]]; then cmd_to_run=cp; fi
+    local cmd_to_run="mv"
+    if [[ "$is_copy_mode" -eq 1 ]]; then cmd_to_run="cp"; fi
 
     if "$cmd_to_run" -n "$file_path" "$dest_path"; then
         log_info "${action_past_tense}: $file_path -> $dest_path"
@@ -216,10 +215,11 @@ process_file() {
 original_pwd="$(pwd)"
 script_path=$(realpath "$0")
 
-while getopts ":i:o:rdca:qyh" opt; do
+while getopts ":i:o:rdca:qyuh" opt; do
     case $opt in
         i) input_dir="$OPTARG" ;;
         o) output_dir="$OPTARG" ;;
+        u) is_user_dir=1 ;;
         r) is_recursive=1 ;;
         d) is_date_sort=1 ;;
         c) is_copy_mode=1; action_name="Copying"; action_past_tense="Copied" ;;
@@ -251,8 +251,11 @@ if [[ "$source_dir" == "/" ]]; then
     exit 1
 fi
 
-# Determine destination directory (resolved relative to the original working directory)
-if [[ -n "$output_dir" ]]; then
+# Determine destination directory
+if [[ "$is_user_dir" -eq 1 ]]; then
+    base_dest_dir="$HOME/Sorted"
+    dest_type_description="Sorting into user directory '$base_dest_dir'"
+elif [[ -n "$output_dir" ]]; then
     if [[ "$output_dir" != /* ]]; then
         base_dest_dir="$original_pwd/$output_dir"
     else
